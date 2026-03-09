@@ -1,0 +1,17 @@
+{
+  "name": "Sangeet - Indian Music Player",
+  "short_name": "Sangeet",
+  "description": "Play Indian songs from 1970s to 2024 in MP3 and video format",
+  "start_url": "/music-player/",
+  "display": "standalone",
+  "background_color": "#0f0f1a",
+  "theme_color": "#1a1a2e",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}
