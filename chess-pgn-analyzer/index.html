@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chess PGN Analyzer</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-wrapper">
+
+    <!-- ── Header ── -->
+    <header class="app-header">
+      <div class="header-left">
+        <span class="header-logo">♟</span>
+        <h1 class="header-title">Chess PGN Analyzer</h1>
+      </div>
+      <div class="header-right">
+        <button id="btn-new" class="btn btn-ghost">New Analysis</button>
+      </div>
+    </header>
+
+    <!-- ── Input section ── -->
+    <section id="input-section" class="input-section">
+      <div class="input-card">
+        <h2 class="input-title">Paste your PGN</h2>
+        <p class="input-subtitle">
+          Paste one or more games in PGN format. Each game will be analyzed
+          move-by-move with Stockfish at depth&nbsp;16.
+        </p>
+        <textarea
+          id="pgn-input"
+          class="pgn-textarea"
+          placeholder='[Event "..."]\n[White "..."]\n[Black "..."]\n\n1. e4 e5 2. Nf3 ...'
+          spellcheck="false"
+        ></textarea>
+
+        <!-- error banner -->
+        <div id="error-msg" class="error-banner" style="display:none"></div>
+
+        <div class="input-actions">
+          <button id="btn-sample" class="btn btn-ghost btn-sm">Load sample game</button>
+          <div class="spacer"></div>
+          <button id="btn-analyze" class="btn btn-primary">Analyze</button>
+          <button id="btn-cancel" class="btn btn-danger" style="display:none">Cancel</button>
+        </div>
+
+        <!-- progress bar -->
+        <div id="progress-area" class="progress-area" style="display:none">
+          <div class="progress-track">
+            <div id="progress-bar" class="progress-fill" style="width:0%"></div>
+          </div>
+          <span id="status-text" class="status-text">Loading engine…</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Analysis section (hidden until results are ready) ── -->
+    <section id="analysis-section" class="analysis-section" style="display:none">
+
+      <!-- game info bar -->
+      <div class="game-info-bar">
+        <div class="player-info player-black">
+          <span class="player-dot dot-black"></span>
+          <span id="game-black" class="player-name">Black</span>
+        </div>
+        <div class="game-meta">
+          <span id="game-event" class="game-event"></span>
+          <span id="game-date" class="game-date"></span>
+        </div>
+        <div class="player-info player-white">
+          <span class="player-dot dot-white"></span>
+          <span id="game-white" class="player-name">White</span>
+        </div>
+        <button id="btn-back" class="btn btn-ghost btn-sm">← Back</button>
+      </div>
+
+      <!-- in-analysis progress (visible while still computing) -->
+      <div id="progress-analysis" class="progress-area progress-inline" style="display:none">
+        <div class="progress-track">
+          <div id="progress-bar-2" class="progress-fill" style="width:0%"></div>
+        </div>
+        <span id="status-text-2" class="status-text">Analyzing…</span>
+        <button id="btn-cancel-2" class="btn btn-danger btn-sm">Cancel</button>
+      </div>
+
+      <div class="analysis-body">
+
+        <!-- ── Move list (left panel) ── -->
+        <aside class="panel-movelist">
+          <div class="movelist-header">
+            <span>Moves</span>
+            <span class="nav-hint">← →</span>
+          </div>
+          <div id="move-list" class="move-list"></div>
+        </aside>
+
+        <!-- ── Eval bar ── -->
+        <div class="eval-bar-wrap">
+          <div id="eval-bar" class="eval-bar">
+            <div class="eval-black-section"></div>
+            <div class="eval-white-section"></div>
+          </div>
+          <div id="eval-label" class="eval-label">0.0</div>
+        </div>
+
+        <!-- ── Board ── -->
+        <div class="board-wrap">
+          <div id="board-container" class="board-container"></div>
+          <div class="board-nav">
+            <button class="nav-btn" id="btn-prev" title="Previous (←)">&#8592;</button>
+            <button class="nav-btn" id="btn-first" title="Start">&#8676;</button>
+            <button class="nav-btn" id="btn-last" title="End">&#8677;</button>
+            <button class="nav-btn" id="btn-next" title="Next (→)">&#8594;</button>
+          </div>
+        </div>
+
+        <!-- ── Detail panel (right) ── -->
+        <aside class="panel-detail">
+          <div id="move-detail" class="move-detail-area">
+            <p class="detail-placeholder">Click a move to see details.</p>
+          </div>
+          <div class="stats-header">Game Summary</div>
+          <div id="game-stats" class="game-stats"></div>
+        </aside>
+
+      </div><!-- /analysis-body -->
+    </section><!-- /analysis-section -->
+
+  </div><!-- /app-wrapper -->
+
+  <!-- chess.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"
+          integrity="sha512-xRCBFpHPiSYUzSIFMZMSD5TQNNT2K7fG5kFz2FiE/1OsTgWBUiTSJovx5xFEBMjI3CxwCuCEP0b9KXVJ5kyw=="
+          crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+  <!-- Main application -->
+  <script src="app.js"></script>
+</body>
+</html>
