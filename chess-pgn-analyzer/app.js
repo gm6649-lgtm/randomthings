@@ -16,7 +16,7 @@ const PIECE_BASE_URL = 'https://lichess1.org/assets/piece/cburnett/';
 
 /** Stockfish source URLs tried in order. */
 const STOCKFISH_URLS = [
-  'https://cdn.jsdelivr.net/npm/stockfish@16.0.0/src/stockfish-16-single.js',
+  'https://cdn.jsdelivr.net/npm/stockfish@10.0.0/src/stockfish.asm.js',
   'https://cdn.jsdelivr.net/npm/stockfish@10.0.0/stockfish.js',
 ];
 
@@ -64,20 +64,47 @@ class StockfishEngine {
   async init(onStatus) {
     onStatus?.('Loading Stockfish engine…');
 
-    for (const url of STOCKFISH_URLS) {
+    /* Strategy:
+     * 1. Try a same-origin Worker using the bundled local file (works when served via HTTP).
+     * 2. If that fails (e.g. file:// access), fetch from CDN and create a blob-URL Worker. */
+    const tryWorker = (url) => new Promise((resolve, reject) => {
       try {
-        const res = await fetch(url, { mode: 'cors' });
-        if (!res.ok) continue;
-        const blob    = await res.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        this.worker   = new Worker(blobUrl);
-        break;
-      } catch (_) { /* try next */ }
+        const w = new Worker(url);
+        const t = setTimeout(() => {
+          w.terminate();
+          reject(new Error('worker timeout'));
+        }, 8000);
+        w.onmessage = ({ data }) => {
+          const msg = typeof data === 'string' ? data : String(data ?? '');
+          if (msg === 'uciok') { clearTimeout(t); resolve(w); }
+        };
+        w.onerror = (e) => { clearTimeout(t); reject(e); };
+        w.postMessage('uci');
+      } catch (e) { reject(e); }
+    });
+
+    /* Try local file first */
+    try {
+      this.worker = await tryWorker('./stockfish.js');
+      onStatus?.('Engine loaded (local)');
+    } catch (_) {
+      /* Fall back: fetch from CDN, wrap in a blob URL */
+      for (const url of STOCKFISH_URLS) {
+        try {
+          const res = await fetch(url, { mode: 'cors' });
+          if (!res.ok) continue;
+          const blob    = await res.blob();
+          const blobUrl = URL.createObjectURL(blob);
+          this.worker   = await tryWorker(blobUrl);
+          onStatus?.('Engine loaded (CDN)');
+          break;
+        } catch (_2) { /* try next */ }
+      }
     }
 
     if (!this.worker) {
       throw new Error(
-        'Could not load Stockfish. Check your internet connection and try again.'
+        'Could not load Stockfish. Serve the app over HTTP (not file://) and refresh.'
       );
     }
 
@@ -86,6 +113,8 @@ class StockfishEngine {
       this._reject?.(new Error('Stockfish worker error'));
     };
 
+    /* The worker already replied to 'uci' with 'uciok' in tryWorker above;
+     * re-register the real message handler and continue init. */
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(
         () => reject(new Error('Stockfish initialisation timed out')), 15000
@@ -107,6 +136,7 @@ class StockfishEngine {
         }
       };
 
+      /* Re-send uci to trigger the full handshake */
       this.worker.postMessage('uci');
     });
   }
@@ -237,7 +267,7 @@ function classifyMove(beforeLines, afterLines, playedUCI, fenBefore) {
   if (evalLoss <= 0 && beforeLines.length >= 2) {
     const secondEvalCP = beforeLines[1].evalCP;
     const gap          = bestEvalCP - secondEvalCP;
-    /* gap ≥ 1.5 pawns means this was effectively the only good move */
+    /* gap ≥ 150 cp (1.5 pawns) means this was effectively the only good move */
     if (gap >= 150 && Math.abs(bestEvalCP) < 800) {
       return 'great';
     }
@@ -291,8 +321,11 @@ function isSacrifice(chess, uciMove, evalBeforeCP, afterOpponentEvalCP) {
   /* Position must have improved for the mover despite the apparent material loss.
      afterOpponentEvalCP > 0  ⇒  opponent is winning  ⇒  mover is losing.
      We want  -afterOpponentEvalCP  (mover's score after)  >  evalBeforeCP  (mover's score before). */
+  /* The sacrifice is valid if the mover's resulting score is nearly as good as (or better
+   * than) the best score before the move.  The 20 cp (0.2 pawn) tolerance allows for
+   * rounding and slight imprecision in the engine's MultiPV evaluations. */
   const moverScoreAfter = -afterOpponentEvalCP;
-  return moverScoreAfter > evalBeforeCP - 20;  // improved or nearly the same
+  return moverScoreAfter > evalBeforeCP - 20;
 }
 
 /* ============================================================

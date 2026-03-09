@@ -296,9 +296,9 @@ html, body {
 }
 .sq-light { background: var(--sq-light); }
 .sq-dark  { background: var(--sq-dark);  }
-.sq-hl-last  { background: rgba(20, 85, 30, 0.55) !important; }
-.sq-hl-last.sq-light { background: rgba(20, 170, 50, 0.45) !important; }
-.sq-hl-best  { background: rgba(0, 120, 220, 0.50) !important; }
+.board-grid .sq.sq-hl-last.sq-dark  { background: rgba(20,  85, 30, 0.55); }
+.board-grid .sq.sq-hl-last.sq-light { background: rgba(20, 170, 50, 0.45); }
+.board-grid .sq.sq-hl-best          { background: rgba(0,  120, 220, 0.50); }
 
 .piece {
   width: 90%; height: 90%;
